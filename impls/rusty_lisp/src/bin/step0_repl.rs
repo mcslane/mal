@@ -1,10 +1,8 @@
-use std::io::{self, Write};
+use rusty_lisp::readline::ReadLine;
+use rustyline::error::ReadlineError;
 
-fn read() -> Result<String, io::Error> {
-    let mut buffer = String::new();
-    let stdin = io::stdin();
-    stdin.read_line(&mut buffer)?;
-    Ok(buffer)
+fn read(rl: &mut ReadLine) -> Result<String, ReadlineError> {
+    rl.read_line("user> ")
 }
 
 fn eval(input: String) -> String {
@@ -13,23 +11,20 @@ fn eval(input: String) -> String {
 }
 
 fn print(output: String) {
-    // as of right now the output has a newline, so we print and flush rather than println
-    print!("{}", output);
-    io::stdout().flush().unwrap();
+    println!("{}", output);
 }
 
-fn rep() -> bool {
-    let input = match read() {
+fn rep(mut rl: &mut ReadLine) -> bool {
+    let input = match read(&mut rl) {
         Ok(input) => input,
+        Err(ReadlineError::Eof) => {
+            return false
+        }
         Err(e) => {
             println!("Error: {}", e);
             return true
         }
     };
-    // if input has length of 0, it is EOF
-    if input.len() == 0 {
-        return false
-    }
     let output = eval(input);
     print(output);
     return true
@@ -37,11 +32,11 @@ fn rep() -> bool {
 
 fn main() {
     let mut keep_going = true;
+    let mut rl = ReadLine::new("repl_history.txt");
     while keep_going {
-        print!("user> ");
-        io::stdout().flush().unwrap();
-        keep_going = rep();
+        keep_going = rep(&mut rl);
     }
+    rl.close();
     // add a last new line so the users shell comes back right
     println!("");
 }
